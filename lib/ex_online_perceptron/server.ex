@@ -27,10 +27,10 @@ defmodule ExOnlinePerceptron.Server do
       {:ok, line} ->
         token = String.split(String.strip(line))
         case token do
-          ["train" | score_and_bag_of_word ] ->
-            process_train(sock, score_and_bag_of_word, filename)
-          ["predict" | bag_of_word] ->
-            process_predict(sock, bag_of_word, filename)
+          ["train" | score_and_bag_of_words ] ->
+            process_train(sock, score_and_bag_of_words, filename)
+          ["predict" | bag_of_words] ->
+            process_predict(sock, bag_of_words, filename)
           _ ->
             :gen_tcp.send(sock, "UNKNOWN COMMAND\r\n")
         end
@@ -66,15 +66,15 @@ defmodule ExOnlinePerceptron.Server do
     train(l, score)
   end
 
-  defp process_train(sock, score_and_bag_of_word, filename) do
+  defp process_train(sock, score_and_bag_of_words, filename) do
     {:ok, ref} = :dets.open_file(__MODULE__, {:file, filename})
-    case score_and_bag_of_word do
-      [binary_score | bag_of_word] ->
+    case score_and_bag_of_words do
+      [binary_score | bag_of_words] ->
         score = binary_to_integer(binary_score, 10)
-        predicted = predict(bag_of_word, 0)
+        predicted = predict(bag_of_words, 0)
         IO.puts "predicted: #{predicted}"
         if (score * predicted < 1) do
-          train(bag_of_word, score)
+          train(bag_of_words, score)
           IO.puts "trained"
         end
         :gen_tcp.send(sock, "TRAINED\r\n")
@@ -84,9 +84,9 @@ defmodule ExOnlinePerceptron.Server do
     :dets.close(__MODULE__)
   end
 
-  defp process_predict(sock, bag_of_word, filename) do
+  defp process_predict(sock, bag_of_words, filename) do
     {:ok, ref} = :dets.open_file(__MODULE__, {:file, filename})
-    predicted = predict(bag_of_word, 0)
+    predicted = predict(bag_of_words, 0)
     :dets.close(__MODULE__)
     :gen_tcp.send(sock, "PREDICTED: #{predicted}\r\n")
   end
